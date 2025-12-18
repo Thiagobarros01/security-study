@@ -48,6 +48,7 @@ public class CustomRegisteredClientRepository implements RegisteredClientReposit
                 .scope(client.getScope())
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .tokenSettings(tokenSettings)
                 .clientSettings(clientSettings)
                 .build();

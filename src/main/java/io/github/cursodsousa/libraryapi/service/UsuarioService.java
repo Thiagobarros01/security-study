@@ -21,10 +21,11 @@ public class UsuarioService {
         repository.save(usuario);
     }
 
+    @Transactional(readOnly = true)
     public Usuario obterPorLogin(String login){
         return repository.findByLogin(login);
     }
-
+    @Transactional(readOnly = true)
     public Usuario obterPorEmail(String email) {
         return repository.findByEmail(email);
     }

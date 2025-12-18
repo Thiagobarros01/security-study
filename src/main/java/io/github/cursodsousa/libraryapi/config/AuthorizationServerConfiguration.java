@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
@@ -102,7 +103,10 @@ public class AuthorizationServerConfiguration {
     public TokenSettings tokenSettings() {
         return TokenSettings.builder()
                 .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
+                //access_token: utilizado nas requisições
                 .accessTokenTimeToLive(Duration.ofMinutes(60))
+                //refresh token servindo para renovar o access_token
+                .refreshTokenTimeToLive(Duration.ofMinutes(90))
                 .build();
     }
 
@@ -112,7 +116,7 @@ public class AuthorizationServerConfiguration {
                 .requireAuthorizationConsent(false)
                 .build();
     }
-    //GERA JWK - JSON Web token - serve para assinar o jwt
+    //GERA JWK - JSON Web Key - serve para assinar o jwt
     @Bean
     public JWKSource<SecurityContext> jwkSource() throws Exception {
         RSAKey rsaKey = gerarChaveRSA();
@@ -142,5 +146,58 @@ public class AuthorizationServerConfiguration {
     public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
         return OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
     }
+
+    @Bean
+    public AuthorizationServerSettings authorizationServerSettings() {
+
+        return AuthorizationServerSettings
+                .builder()
+
+                // Endpoint onde o CLIENT solicita tokens ao Authorization Server
+                // Usado nos fluxos:
+                // - Authorization Code
+                // - Client Credentials
+                // - Refresh Token
+                // Retorna access_token, refresh_token, expires_in, etc.
+                .tokenEndpoint("/oauth2/token")
+
+                // Endpoint usado por Resource Servers para VALIDAR um token
+                // Serve para consultar:
+                // - se o token está ativo
+                // - escopos
+                // - data de expiração
+                // Muito usado quando NÃO se trabalha apenas com JWT local
+                .tokenIntrospectionEndpoint("/oauth2/introspect")
+
+                // Endpoint que permite REVOGAR tokens
+                // Pode invalidar:
+                // - access_token
+                // - refresh_token
+                // Importante para logout, segurança e revogação manual
+                .tokenRevocationEndpoint("/oauth2/revoke")
+
+                // Endpoint inicial do fluxo Authorization Code
+                // É aqui que o USUÁRIO é redirecionado para autenticação
+                // Após login e consentimento, retorna o authorization code
+                .authorizationEndpoint("/oauth2/authorize")
+
+                // Endpoint do OpenID Connect (OIDC)
+                // Retorna informações do usuário autenticado (claims)
+                // Ex: sub, email, nome
+                .oidcUserInfoEndpoint("/oauth2/userinfo")
+
+                // Endpoint que expõe as chaves públicas (JWK)
+                // Usado por Resource Servers para validar JWT
+                // Fundamental quando se trabalha com JWT + RSA
+                .jwkSetEndpoint("/oauth2/jwks")
+
+                // Endpoint de logout do OpenID Connect
+                // Finaliza a sessão do usuário no Authorization Server
+                // Usado em logout centralizado (Single Logout)
+                .oidcLogoutEndpoint("/oauth2/logout")
+
+                .build();
+    }
+
 
 }
